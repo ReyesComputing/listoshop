@@ -101,12 +101,12 @@ export default function AddProductScreen() {
     const contentType = 'image/jpeg';
 
     const { data, error } = await supabase.storage
-      .from('product-images')
+      .from('listoshop-imagenesdeproductos')
       .upload(filePath, decode(base64), { contentType });
 
     if (error) throw error;
 
-    const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage.from('listoshop-imagenesdeproductos').getPublicUrl(filePath);
     return publicUrl;
   };
 

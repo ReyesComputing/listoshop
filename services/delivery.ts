@@ -65,13 +65,13 @@ export async function uploadEvidenceFile(
   const { decode } = await import('base64-arraybuffer');
 
   const { error } = await supabase.storage
-    .from('delivery-evidence')
+    .from('listoshop-evidenciasdeentrega')
     .upload(filePath, decode(fileBase64), { contentType });
 
   if (error) throw new Error(error.message);
 
   const { data: { publicUrl } } = supabase.storage
-    .from('delivery-evidence')
+    .from('listoshop-evidenciasdeentrega')
     .getPublicUrl(filePath);
 
   return publicUrl;
