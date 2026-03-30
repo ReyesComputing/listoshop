@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ShoppingCart, Package, Store as StoreIcon } from 'lucide-react-native';
-import { supabase } from '../lib/supabase';
-import { Product, Store } from '../types/database';
-import { useCartStore } from '../store/useCartStore';
+import { supabase } from '../../lib/supabase';
+import { Product, Store } from '../../types/database';
+import { useCartStore } from '../../store/useCartStore';
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const addItem = useCartStore((state) => state.addItem);
+  const addItem = useCartStore((state: any) => state.addItem);
   const [product, setProduct] = useState<Product | null>(null);
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
