@@ -28,39 +28,37 @@ export default function CartScreen() {
 
     setLoading(true);
     try {
-      // 1. Simulate payment with Wompi/ePayco
+      // Fix Hallazgo 5: Atomic checkout using the 'place_order' RPC
+      const orderItems = items.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+      }));
+
+      const { data: orderId, error: checkoutError } = await supabase.rpc('place_order', {
+        p_buyer_id: profile.id,
+        p_total_amount: total,
+        p_items: orderItems,
+      });
+
+      if (checkoutError) throw checkoutError;
+
+      // Hallazgo 4: Flow: order is 'pending'. Now simulate payment.
       const paymentResult = await simulatePayment(total);
 
       if (paymentResult.success) {
-        // 2. Create Order in Supabase
-        const { data: order, error: orderError } = await supabase
+        // Update Order to 'paid' after successful payment
+        const { error: updateError } = await supabase
           .from('orders')
-          .insert({
-            buyer_id: profile.id,
-            total_amount: total,
-            status: 'paid',
-          })
-          .select('*')
-          .single();
+          .update({ status: 'paid' })
+          .eq('id', orderId);
 
-        if (orderError) throw orderError;
+        if (updateError) throw updateError;
 
-        // 3. Create Order Items
-        const orderItems = items.map((item) => ({
-          order_id: order.id,
-          product_id: item.id,
-          quantity: item.quantity,
-          unit_price: item.price,
-        }));
-
-        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
-        if (itemsError) throw itemsError;
-
-        Alert.alert('¡Compra exitosa!', `Tu pedido #${order.id.slice(0, 8)} ha sido procesado.`);
+        Alert.alert('¡Compra exitosa!', `Tu pedido #${orderId.slice(0, 8)} ha sido procesado.`);
         clearCart();
       } else {
-        Alert.alert('Error de pago', 'No se pudo completar la transacción.');
+        Alert.alert('Error de pago', paymentResult.error || 'No se pudo completar la transacción. Tu pedido quedó pendiente.');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Error al procesar el pedido');

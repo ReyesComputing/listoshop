@@ -44,7 +44,6 @@ export default function AddProductScreen() {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // No store yet, create one
         const { data: newStore, error: createError } = await supabase
           .from('stores')
           .insert({ vendor_id: profile.id, name: `Tienda de ${profile.name}` })
@@ -113,8 +112,23 @@ export default function AddProductScreen() {
 
   const handleSave = async () => {
     if (!profile || !storeId) return;
-    if (!form.name || !form.price || !form.stock) {
-      Alert.alert('Error', 'Por favor llena los campos obligatorios');
+
+    // Fix Hallazgo 8: Robust price/stock validation
+    const numericPrice = parseFloat(form.price);
+    const numericStock = parseInt(form.stock);
+
+    if (!form.name || isNaN(numericPrice) || isNaN(numericStock)) {
+      Alert.alert('Error', 'Por favor llena los campos obligatorios con valores numéricos válidos');
+      return;
+    }
+
+    if (numericPrice <= 0) {
+      Alert.alert('Error', 'El precio debe ser mayor a 0 pesos colombianos (COP)');
+      return;
+    }
+
+    if (numericStock < 0) {
+      Alert.alert('Error', 'El stock no puede ser negativo');
       return;
     }
 
@@ -129,8 +143,8 @@ export default function AddProductScreen() {
       const productData = {
         name: form.name,
         description: form.description,
-        price: parseFloat(form.price),
-        stock: parseInt(form.stock),
+        price: numericPrice,
+        stock: numericStock,
         category: form.category,
         image_url,
         store_id: storeId,
