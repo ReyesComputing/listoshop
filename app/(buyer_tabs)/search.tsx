@@ -28,7 +28,7 @@ export default function SearchScreen() {
         query = query.eq('category', selectedCategory);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(50);
 
       if (error) throw error;
       setProducts(data || []);
