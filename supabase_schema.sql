@@ -108,6 +108,41 @@ CREATE TRIGGER trg_orders_updated_at
   BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 
+-- ===================== RLS HELPER FUNCTIONS ========================
+-- Funciones SECURITY DEFINER que rompen la recursión circular en RLS
+
+CREATE OR REPLACE FUNCTION is_vendor_of_order(p_order_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM order_items oi
+    JOIN stores s ON s.id = oi.store_id
+    WHERE oi.order_id = p_order_id AND s.vendor_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION is_buyer_of_order(p_order_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM orders WHERE id = p_order_id AND buyer_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION vendor_has_buyer(p_buyer_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    JOIN stores s ON s.id = oi.store_id
+    WHERE o.buyer_id = p_buyer_id AND s.vendor_id = auth.uid()
+  );
+$$;
+
 -- ===================== RLS ========================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -126,14 +161,7 @@ CREATE POLICY "Users can insert own profile on signup"
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Vendors see buyer names for their orders"
-  ON profiles FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM order_items oi
-      JOIN orders o ON o.id = oi.order_id
-      JOIN stores s ON s.id = oi.store_id
-      WHERE o.buyer_id = profiles.id AND s.vendor_id = auth.uid()
-    )
-  );
+  ON profiles FOR SELECT USING (vendor_has_buyer(profiles.id));
 
 -- stores
 CREATE POLICY "Stores are viewable by everyone" ON stores FOR SELECT USING (true);
@@ -158,46 +186,34 @@ CREATE POLICY "Vendors can delete own products" ON products FOR DELETE USING (
 
 -- orders
 CREATE POLICY "Buyers can view their orders" ON orders FOR SELECT USING (auth.uid() = buyer_id);
-CREATE POLICY "Vendors can view orders with their products" ON orders FOR SELECT USING (
-  EXISTS (SELECT 1 FROM order_items oi JOIN stores s ON s.id = oi.store_id
-          WHERE oi.order_id = orders.id AND s.vendor_id = auth.uid())
-);
+CREATE POLICY "Vendors can view orders with their products"
+  ON orders FOR SELECT USING (is_vendor_of_order(orders.id));
 CREATE POLICY "Buyers can create orders" ON orders FOR INSERT WITH CHECK (auth.uid() = buyer_id);
 CREATE POLICY "Order status can be updated" ON orders FOR UPDATE USING (
-  auth.uid() = buyer_id OR
-  EXISTS (SELECT 1 FROM order_items oi JOIN stores s ON s.id = oi.store_id
-          WHERE oi.order_id = orders.id AND s.vendor_id = auth.uid())
+  auth.uid() = buyer_id OR is_vendor_of_order(orders.id)
 );
 
 -- order_items
-CREATE POLICY "Buyers can view their order items" ON order_items FOR SELECT USING (
-  EXISTS (SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.buyer_id = auth.uid())
-);
+CREATE POLICY "Buyers can view their order items"
+  ON order_items FOR SELECT USING (is_buyer_of_order(order_items.order_id));
 CREATE POLICY "Vendors can view items for their store" ON order_items FOR SELECT USING (
   store_id IN (SELECT id FROM stores WHERE vendor_id = auth.uid())
 );
-CREATE POLICY "Buyers can insert order items" ON order_items FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.buyer_id = auth.uid())
-);
+CREATE POLICY "Buyers can insert order items"
+  ON order_items FOR INSERT WITH CHECK (is_buyer_of_order(order_items.order_id));
 
 -- order_events
-CREATE POLICY "Buyers can view events for their orders" ON order_events FOR SELECT USING (
-  EXISTS (SELECT 1 FROM orders WHERE orders.id = order_events.order_id AND orders.buyer_id = auth.uid())
-);
-CREATE POLICY "Vendors can view events for their orders" ON order_events FOR SELECT USING (
-  EXISTS (SELECT 1 FROM order_items oi JOIN stores s ON s.id = oi.store_id
-          WHERE oi.order_id = order_events.order_id AND s.vendor_id = auth.uid())
-);
+CREATE POLICY "Buyers can view events for their orders"
+  ON order_events FOR SELECT USING (is_buyer_of_order(order_events.order_id));
+CREATE POLICY "Vendors can view events for their orders"
+  ON order_events FOR SELECT USING (is_vendor_of_order(order_events.order_id));
 CREATE POLICY "Actors can insert events" ON order_events FOR INSERT WITH CHECK (auth.uid() = actor_id);
 
 -- delivery_evidence
-CREATE POLICY "Buyers can view delivery evidence" ON delivery_evidence FOR SELECT USING (
-  EXISTS (SELECT 1 FROM orders WHERE orders.id = delivery_evidence.order_id AND orders.buyer_id = auth.uid())
-);
-CREATE POLICY "Vendors can view delivery evidence" ON delivery_evidence FOR SELECT USING (
-  EXISTS (SELECT 1 FROM order_items oi JOIN stores s ON s.id = oi.store_id
-          WHERE oi.order_id = delivery_evidence.order_id AND s.vendor_id = auth.uid())
-);
+CREATE POLICY "Buyers can view delivery evidence"
+  ON delivery_evidence FOR SELECT USING (is_buyer_of_order(delivery_evidence.order_id));
+CREATE POLICY "Vendors can view delivery evidence"
+  ON delivery_evidence FOR SELECT USING (is_vendor_of_order(delivery_evidence.order_id));
 CREATE POLICY "Users can insert delivery evidence" ON delivery_evidence FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
 
 

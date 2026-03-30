@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types/database';
@@ -10,8 +11,9 @@ export default function RootLayout() {
   const { profile, setProfile } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
 
-  // Fix Hallazgo 7: Robust session control: Hydrate Supabase session on init
+  // Hydrate Supabase session on init
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -26,6 +28,7 @@ export default function RootLayout() {
           setProfile(profileData as Profile);
         }
       }
+      setIsReady(true);
     };
 
     checkUser();
@@ -49,6 +52,8 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (!isReady) return;
+
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!profile && !inAuthGroup) {
@@ -60,7 +65,15 @@ export default function RootLayout() {
         router.replace('/(vendor_tabs)/dashboard');
       }
     }
-  }, [profile, segments]);
+  }, [profile, segments, isReady]);
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
   return (
     <>
