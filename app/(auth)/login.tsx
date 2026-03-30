@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -9,12 +9,14 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
   const setProfile = useAuthStore((state) => state.setProfile);
 
   const handleLogin = async () => {
+    setError('');
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor llena todos los campos');
+      setError('Por favor llena todos los campos');
       return;
     }
 
@@ -44,8 +46,9 @@ export default function Login() {
           router.replace('/(vendor_tabs)/dashboard');
         }
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al iniciar sesión');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -60,6 +63,12 @@ export default function Login() {
         <View className="flex-1 justify-center">
           <Text className="text-4xl font-bold text-blue-600 text-center mb-8">ListoShop</Text>
           <Text className="text-2xl font-semibold text-gray-800 mb-6 text-center">Bienvenido de nuevo</Text>
+
+          {error ? (
+            <View className="bg-red-100 border border-red-400 rounded-xl p-3 mb-4">
+              <Text className="text-red-700 text-center">{error}</Text>
+            </View>
+          ) : null}
 
           <View className="space-y-4">
             <View>

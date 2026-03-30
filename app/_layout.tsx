@@ -34,15 +34,19 @@ export default function RootLayout() {
     checkUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (profileData) setProfile(profileData as Profile);
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         setProfile(null);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Solo re-hidratar en refresh, no en SIGNED_IN (register.tsx maneja eso)
+        const current = useAuthStore.getState().profile;
+        if (!current) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (profileData) setProfile(profileData as Profile);
+        }
       }
     });
 
