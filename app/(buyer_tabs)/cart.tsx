@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Minus, Plus, Trash2, CreditCard } from 'lucide-react-native';
 import { useCartStore } from '../../store/useCartStore';
-import { simulatePayment } from '../../services/payment';
+import { initiatePayment } from '../../services/payment';
 import { useAuthStore } from '../../store/useAuthStore';
 import { supabase } from '../../lib/supabase';
 
@@ -28,40 +28,52 @@ export default function CartScreen() {
 
     setLoading(true);
     try {
-      // Fix Hallazgo 5: Atomic checkout using the 'place_order' RPC
-      const orderItems = items.map((item) => ({
+      // 1. Checkout atómico via RPC (valida stock, reserva, crea orden + items)
+      const cartItems = items.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
-        unit_price: item.price,
       }));
 
-      const { data: orderId, error: checkoutError } = await supabase.rpc('place_order', {
+      const { data, error: checkoutError } = await supabase.rpc('checkout_atomic', {
         p_buyer_id: profile.id,
-        p_total_amount: total,
-        p_items: orderItems,
+        p_items: cartItems,
+        p_shipping_address: profile.address ?? null,
       });
 
       if (checkoutError) throw checkoutError;
 
-      // Hallazgo 4: Flow: order is 'pending'. Now simulate payment.
-      const paymentResult = await simulatePayment(total);
+      const orderId = data.order_id as string;
+      const orderTotal = data.total_amount as number;
+
+      // 2. Iniciar pago con el gateway
+      const paymentResult = await initiatePayment({
+        orderId,
+        amount: orderTotal,
+        currency: 'COP',
+        customerEmail: profile.email,
+        customerName: profile.name,
+      });
 
       if (paymentResult.success) {
-        // Update Order to 'paid' after successful payment
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({ status: 'paid' })
-          .eq('id', orderId);
-
-        if (updateError) throw updateError;
-
-        Alert.alert('¡Compra exitosa!', `Tu pedido #${orderId.slice(0, 8)} ha sido procesado.`);
+        Alert.alert(
+          '¡Pedido creado!',
+          `Orden #${orderId.slice(0, 8)} por ${formatPrice(orderTotal)}. ${paymentResult.message ?? 'Procesando pago...'}`,
+        );
         clearCart();
       } else {
-        Alert.alert('Error de pago', paymentResult.error || 'No se pudo completar la transacción. Tu pedido quedó pendiente.');
+        // Si el pago falla, cancelar la orden para restaurar stock
+        await supabase.rpc('advance_order_status', {
+          p_order_id: orderId,
+          p_new_status: 'failed',
+          p_actor_id: profile.id,
+          p_actor_role: 'buyer',
+          p_note: paymentResult.error ?? 'Pago rechazado',
+        });
+        Alert.alert('Error de pago', paymentResult.error ?? 'No se pudo completar la transacción.');
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al procesar el pedido');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al procesar el pedido';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }

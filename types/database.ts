@@ -1,5 +1,16 @@
 export type UserRole = 'buyer' | 'vendor';
 
+export type OrderStatus =
+  | 'pending_payment'
+  | 'paid'
+  | 'ready_for_dispatch'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'failed';
+
+export type EvidenceType = 'photo' | 'signature' | 'note';
+
 export interface Profile {
   id: string;
   email: string;
@@ -28,6 +39,7 @@ export interface Product {
   stock: number;
   category: string;
   image_url?: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -35,14 +47,41 @@ export interface Order {
   id: string;
   buyer_id: string;
   total_amount: number;
-  status: 'pending' | 'paid' | 'shipped';
+  status: OrderStatus;
+  payment_reference?: string;
+  shipping_address?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
+  store_id: string;
   quantity: number;
   unit_price: number;
+}
+
+export interface OrderEvent {
+  id: string;
+  order_id: string;
+  previous_status?: string;
+  new_status: string;
+  actor_id?: string;
+  actor_role: 'buyer' | 'vendor' | 'system';
+  note?: string;
+  created_at: string;
+}
+
+export interface DeliveryEvidence {
+  id: string;
+  order_id: string;
+  uploaded_by?: string;
+  evidence_type: EvidenceType;
+  file_url?: string;
+  note?: string;
+  latitude?: number;
+  longitude?: number;
+  created_at: string;
 }

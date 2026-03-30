@@ -42,8 +42,8 @@ export default function ProfileScreen() {
     fetchOrders();
   };
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    await signOut();
     router.replace('/(auth)/login');
   };
 
@@ -64,14 +64,35 @@ export default function ProfileScreen() {
     });
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending_payment: 'Pendiente de pago',
+      paid: 'Pagado',
+      ready_for_dispatch: 'Listo para despacho',
+      shipped: 'Enviado',
+      delivered: 'Entregado',
+      cancelled: 'Cancelado',
+      failed: 'Fallido',
+    };
+    return labels[status] ?? status;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
         return 'bg-green-100 text-green-700';
+      case 'ready_for_dispatch':
+        return 'bg-indigo-100 text-indigo-700';
       case 'shipped':
         return 'bg-blue-100 text-blue-700';
-      case 'pending':
+      case 'delivered':
+        return 'bg-emerald-100 text-emerald-700';
+      case 'pending_payment':
         return 'bg-yellow-100 text-yellow-700';
+      case 'cancelled':
+        return 'bg-red-100 text-red-700';
+      case 'failed':
+        return 'bg-gray-100 text-gray-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -87,7 +108,7 @@ export default function ProfileScreen() {
             <View className="flex-row justify-between items-center mb-2">
               <Text className="font-bold text-gray-800">Orden #{item.id.slice(0, 8)}</Text>
               <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-xs font-bold uppercase">{item.status}</Text>
+                <Text className="text-xs font-bold">{getStatusLabel(item.status)}</Text>
               </View>
             </View>
             <View className="flex-row justify-between items-center">
