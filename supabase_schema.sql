@@ -34,6 +34,9 @@ CREATE TABLE products (
   category TEXT,
   image_url TEXT,
   is_active BOOLEAN DEFAULT TRUE,
+  brand TEXT,
+  size TEXT,
+  color TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

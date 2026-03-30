@@ -115,6 +115,27 @@ export default function ProductDetail() {
             </Text>
           </View>
 
+          {/* Marca, Talla, Color */}
+          {(product.brand || product.size || product.color) && (
+            <View className="flex-row flex-wrap mb-4 gap-2">
+              {product.brand && (
+                <View className="bg-gray-100 px-3 py-1.5 rounded-full">
+                  <Text className="text-gray-700 text-sm font-medium">Marca: {product.brand}</Text>
+                </View>
+              )}
+              {product.size && (
+                <View className="bg-gray-100 px-3 py-1.5 rounded-full">
+                  <Text className="text-gray-700 text-sm font-medium">Talla: {product.size}</Text>
+                </View>
+              )}
+              {product.color && (
+                <View className="bg-gray-100 px-3 py-1.5 rounded-full">
+                  <Text className="text-gray-700 text-sm font-medium">Color: {product.color}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Descripción */}
           {product.description ? (
             <View className="mb-6">

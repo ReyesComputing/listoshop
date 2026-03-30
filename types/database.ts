@@ -40,6 +40,9 @@ export interface Product {
   category: string;
   image_url?: string;
   is_active: boolean;
+  brand?: string;
+  size?: string;
+  color?: string;
   created_at: string;
 }
 
