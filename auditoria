@@ -1,0 +1,93 @@
+# Auditoria tecnica de codigo - ListoShop
+
+Fecha: 2026-03-29
+Alcance: revision profunda de seguridad, logica de negocio, consistencia de datos y calidad tecnica.
+
+## Hallazgos criticos
+
+1. Falta de politicas RLS para order_items
+- RLS esta habilitado para order_items, pero no existen politicas CREATE POLICY para esa tabla en el esquema.
+- Impacto: inserciones/consultas pueden fallar en produccion y romper checkout/dashboard.
+- Evidencia:
+  - supabase_schema.sql (ALTER TABLE ... ENABLE ROW LEVEL SECURITY)
+  - app/(buyer_tabs)/cart.tsx (insert en order_items)
+  - app/(vendor_tabs)/dashboard.tsx (consulta sobre order_items)
+
+2. Registro depende de INSERT en profiles sin politica de INSERT definida
+- El flujo de registro inserta en profiles luego de crear auth user.
+- En schema solo hay politicas de SELECT y UPDATE para profiles.
+- Impacto: altas parciales (usuario en auth sin perfil de negocio).
+- Evidencia:
+  - app/(auth)/register.tsx
+  - supabase_schema.sql
+
+3. Logout incompleto: no cierra sesion en Supabase
+- signOut del store solo limpia estado local y no llama supabase.auth.signOut().
+- Impacto: sesion/token puede permanecer activo.
+- Evidencia:
+  - store/useAuthStore.ts
+  - app/(buyer_tabs)/profile.tsx
+  - app/(vendor_tabs)/dashboard.tsx
+
+## Hallazgos altos
+
+4. Flujo de pago no real marca pedidos como pagados
+- Se usa simulatePayment con resultado aleatorio y se persiste status = paid.
+- Impacto: inconsistencia financiera y riesgo de pedidos pagados sin conciliacion real.
+- Evidencia:
+  - services/payment.ts
+  - app/(buyer_tabs)/cart.tsx
+
+5. Checkout no transaccional y sin control de inventario
+- Inserta orden y luego items en operaciones separadas.
+- No existe decremento de stock durante compra.
+- Impacto: ordenes huerfanas/parciales, sobreventa e inconsistencia de inventario.
+- Evidencia:
+  - app/(buyer_tabs)/cart.tsx
+
+6. Exposicion de PII por politica publica en profiles
+- profiles tiene email, phone y address, y politica de lectura publica.
+- Impacto: fuga de datos personales.
+- Evidencia:
+  - supabase_schema.sql
+
+7. Control de sesion fragil basado en estado en memoria
+- Enrutamiento depende de profile en Zustand, sin hidratar sesion Supabase al iniciar.
+- Impacto: redirecciones inconsistentes tras reinicios o refresh.
+- Evidencia:
+  - app/_layout.tsx
+
+## Hallazgos medios
+
+8. Validacion insuficiente en alta/edicion de productos
+- price/stock se parsean sin validacion robusta de rango o NaN.
+- Impacto: datos invalidos si backend no bloquea.
+- Evidencia:
+  - app/(vendor_tabs)/add-product.tsx
+
+9. Error de TypeScript en compilacion
+- Existe @ts-expect-error sin error real asociado (TS2578).
+- Impacto: chequeo de tipos falla.
+- Evidencia:
+  - components/ExternalLink.tsx
+
+10. Configuracion de Supabase con placeholders por defecto
+- URL y anon key tienen fallback a valores placeholder.
+- Impacto: configuraciones incorrectas pueden pasar inadvertidas.
+- Evidencia:
+  - lib/supabase.ts
+
+## Validaciones ejecutadas
+
+- npm ci: completado.
+- npm audit: sin vulnerabilidades reportadas.
+- npx tsc --noEmit: falla por TS2578 en components/ExternalLink.tsx.
+
+## Recomendaciones inmediatas (prioridad)
+
+1. Definir politicas RLS faltantes para order_items y INSERT en profiles.
+2. Implementar logout real con supabase.auth.signOut() + limpieza de estado local.
+3. Migrar checkout a operacion atomica (RPC/transaction server-side) con validacion de stock.
+4. Cambiar status inicial de orden a pending hasta confirmacion real de pasarela.
+5. Corregir error TS2578 en components/ExternalLink.tsx.
+6. Endurecer validaciones de price/stock y eliminar fallbacks placeholder en produccion.
