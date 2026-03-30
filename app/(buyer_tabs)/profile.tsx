@@ -6,6 +6,16 @@ import { Order, Profile } from '../../types/database';
 import { User, LogOut, Package, MapPin, Phone, Edit3, Check } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
+const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  pending_payment: { bg: '#fef9c3', text: '#a16207' },
+  paid: { bg: '#dcfce7', text: '#15803d' },
+  ready_for_dispatch: { bg: '#e0e7ff', text: '#4338ca' },
+  shipped: { bg: '#dbeafe', text: '#1d4ed8' },
+  delivered: { bg: '#d1fae5', text: '#047857' },
+  cancelled: { bg: '#fee2e2', text: '#dc2626' },
+  failed: { bg: '#f3f4f6', text: '#374151' },
+};
+
 export default function ProfileScreen() {
   const { profile, setProfile, signOut } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -80,92 +90,86 @@ export default function ProfileScreen() {
     return labels[status] ?? status;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-green-100 text-green-700';
-      case 'ready_for_dispatch': return 'bg-indigo-100 text-indigo-700';
-      case 'shipped': return 'bg-blue-100 text-blue-700';
-      case 'delivered': return 'bg-emerald-100 text-emerald-700';
-      case 'pending_payment': return 'bg-yellow-100 text-yellow-700';
-      case 'cancelled': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
+  const getStatusStyle = (status: string) => STATUS_STYLES[status] ?? { bg: '#f3f4f6', text: '#374151' };
 
   return (
     <View className="flex-1 bg-gray-50">
       <FlatList
         data={orders}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => router.push(`/order/${item.id}`)}
-            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-3 mx-4"
-          >
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="font-bold text-gray-800">Orden #{item.id.slice(0, 8)}</Text>
-              <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-xs font-bold">{getStatusLabel(item.status)}</Text>
+        renderItem={({ item }) => {
+          const statusStyle = getStatusStyle(item.status);
+          return (
+            <TouchableOpacity
+              onPress={() => router.push(`/order/${item.id}`)}
+              className="bg-white p-4 rounded-2xl mb-3 mx-4"
+              style={{ elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}
+            >
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="font-bold text-gray-800">Orden #{item.id.slice(0, 8)}</Text>
+                <View style={{ backgroundColor: statusStyle.bg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }}>
+                  <Text style={{ color: statusStyle.text, fontSize: 11, fontWeight: '700' }}>{getStatusLabel(item.status)}</Text>
+                </View>
               </View>
-            </View>
-            <View className="flex-row justify-between items-center">
-              <Text className="text-gray-500">{formatDate(item.created_at)}</Text>
-              <Text className="text-blue-600 font-bold">{formatPrice(item.total_amount)}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+              <View className="flex-row justify-between items-center">
+                <Text className="text-gray-500 text-sm">{formatDate(item.created_at)}</Text>
+                <Text className="text-blue-600 font-bold">{formatPrice(item.total_amount)}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListHeaderComponent={
           <View className="p-6">
             {/* User header */}
-            <View className="flex-row items-center space-x-4 mb-6">
-              <View className="bg-blue-600 p-4 rounded-full">
-                <User size={40} color="white" />
+            <View className="flex-row items-center mb-6">
+              <View className="bg-blue-600 p-4 rounded-2xl" style={{ elevation: 4 }}>
+                <User size={36} color="white" />
               </View>
               <View className="flex-1 ml-4">
                 <Text className="text-2xl font-bold text-gray-800">{profile?.name}</Text>
-                <Text className="text-gray-500">{profile?.email}</Text>
+                <Text className="text-gray-500 text-sm">{profile?.email}</Text>
               </View>
-              <TouchableOpacity onPress={handleLogout} className="p-3 rounded-full bg-red-50">
-                <LogOut size={24} color="#ef4444" />
+              <TouchableOpacity onPress={handleLogout} className="p-3 rounded-xl bg-red-50">
+                <LogOut size={22} color="#ef4444" />
               </TouchableOpacity>
             </View>
 
-            {/* Profile info (editable) */}
-            <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-8">
+            {/* Profile info */}
+            <View className="bg-white p-5 rounded-2xl mb-8" style={{ elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
               {editing ? (
-                <View className="space-y-3">
-                  <View>
+                <View>
+                  <View className="mb-3">
                     <Text className="text-xs text-gray-500 mb-1">Nombre</Text>
                     <TextInput
                       value={editName}
                       onChangeText={setEditName}
-                      className="border border-gray-200 rounded-lg p-3 text-gray-800"
+                      className="border border-gray-200 rounded-xl p-3 text-gray-800"
                     />
                   </View>
-                  <View>
+                  <View className="mb-3">
                     <Text className="text-xs text-gray-500 mb-1">Teléfono</Text>
                     <TextInput
                       value={editPhone}
                       onChangeText={setEditPhone}
                       keyboardType="phone-pad"
                       placeholder="+57 300 000 0000"
-                      className="border border-gray-200 rounded-lg p-3 text-gray-800"
+                      className="border border-gray-200 rounded-xl p-3 text-gray-800"
                     />
                   </View>
-                  <View>
+                  <View className="mb-4">
                     <Text className="text-xs text-gray-500 mb-1">Dirección de envío</Text>
                     <TextInput
                       value={editAddress}
                       onChangeText={setEditAddress}
                       placeholder="Calle, barrio, ciudad"
-                      className="border border-gray-200 rounded-lg p-3 text-gray-800"
+                      className="border border-gray-200 rounded-xl p-3 text-gray-800"
                     />
                   </View>
-                  <View className="flex-row space-x-2 mt-2">
+                  <View className="flex-row">
                     <TouchableOpacity
                       onPress={handleSaveProfile}
                       disabled={saving}
-                      className="flex-1 bg-blue-600 py-3 rounded-lg items-center flex-row justify-center"
+                      className="flex-1 bg-blue-600 py-3 rounded-xl items-center flex-row justify-center"
                     >
                       <Check size={18} color="white" />
                       <Text className="text-white font-bold ml-1">
@@ -174,7 +178,7 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setEditing(false)}
-                      className="flex-1 bg-gray-200 py-3 rounded-lg items-center ml-2"
+                      className="flex-1 bg-gray-200 py-3 rounded-xl items-center ml-3"
                     >
                       <Text className="text-gray-700 font-bold">Cancelar</Text>
                     </TouchableOpacity>
@@ -201,7 +205,7 @@ export default function ProfileScreen() {
                       setEditAddress(profile?.address || '');
                       setEditing(true);
                     }}
-                    className="bg-gray-100 py-2 rounded-lg items-center flex-row justify-center mt-1"
+                    className="bg-gray-100 py-2 rounded-xl items-center flex-row justify-center mt-1"
                   >
                     <Edit3 size={16} color="#2563eb" />
                     <Text className="text-blue-600 font-semibold ml-1">Editar perfil</Text>
@@ -221,7 +225,8 @@ export default function ProfileScreen() {
         }
         ListEmptyComponent={
           <View className="py-10 items-center">
-            <Text className="text-gray-400">Aún no has realizado pedidos.</Text>
+            <Text className="text-4xl mb-2">📦</Text>
+            <Text className="text-gray-400">Aún no has realizado pedidos</Text>
           </View>
         }
       />

@@ -1,28 +1,41 @@
 import React from 'react';
+import { View, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Search, ShoppingCart, User } from 'lucide-react-native';
+import { useCartStore } from '../../store/useCartStore';
 
 export default function BuyerLayout() {
+  const itemCount = useCartStore((s) => s.items.length);
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2563eb', // blue-600
-        tabBarInactiveTintColor: '#64748b', // slate-500
+        tabBarActiveTintColor: '#2563eb',
+        tabBarInactiveTintColor: '#94a3b8',
         headerShown: true,
+        headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: '#1e293b' },
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#f1f5f9',
-          height: 60,
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+          height: 64,
           paddingBottom: 10,
+          paddingTop: 6,
+          backgroundColor: '#fff',
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Inicio',
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          headerTitle: 'ListoShop Cali',
+          headerTitle: 'ListoShop',
         }}
       />
       <Tabs.Screen
@@ -36,13 +49,30 @@ export default function BuyerLayout() {
         name="cart"
         options={{
           title: 'Carrito',
-          tabBarIcon: ({ color, size }) => <ShoppingCart size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <ShoppingCart size={size} color={color} />
+              {itemCount > 0 && (
+                <View style={{
+                  position: 'absolute', top: -4, right: -10,
+                  backgroundColor: '#ef4444', borderRadius: 10,
+                  minWidth: 18, height: 18,
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingHorizontal: 4,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                    {itemCount > 9 ? '9+' : itemCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Mi Perfil',
+          title: 'Perfil',
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />

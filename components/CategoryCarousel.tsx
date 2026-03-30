@@ -2,11 +2,12 @@ import React from 'react';
 import { ScrollView, TouchableOpacity, Text, View } from 'react-native';
 
 const CATEGORIES = [
-  { id: '1', name: 'Tenis' },
-  { id: '2', name: 'Perfumes' },
-  { id: '3', name: 'Ropa' },
-  { id: '4', name: 'Accesorios' },
-  { id: '5', name: 'Electrónica' },
+  { id: '0', name: 'Todos', emoji: '🛍️' },
+  { id: '1', name: 'Tenis', emoji: '👟' },
+  { id: '2', name: 'Perfumes', emoji: '🧴' },
+  { id: '3', name: 'Ropa', emoji: '👕' },
+  { id: '4', name: 'Accesorios', emoji: '⌚' },
+  { id: '5', name: 'Electrónica', emoji: '🎧' },
 ];
 
 interface CategoryCarouselProps {
@@ -16,27 +17,32 @@ interface CategoryCarouselProps {
 
 export function CategoryCarousel({ onSelectCategory, selectedCategory }: CategoryCarouselProps) {
   return (
-    <View className="py-4">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
-        {CATEGORIES.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            onPress={() => onSelectCategory(category.name)}
-            className={`mr-3 px-6 py-2 rounded-full border ${
-              selectedCategory === category.name
-                ? 'bg-blue-600 border-blue-600'
-                : 'bg-white border-gray-200'
-            }`}
-          >
-            <Text
-              className={`font-semibold ${
-                selectedCategory === category.name ? 'text-white' : 'text-gray-600'
+    <View className="py-3">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+        {CATEGORIES.map((category) => {
+          const isSelected = selectedCategory === category.name || (category.name === 'Todos' && !selectedCategory);
+          return (
+            <TouchableOpacity
+              key={category.id}
+              onPress={() => onSelectCategory(category.name === 'Todos' ? '' : category.name)}
+              className={`mr-2 px-4 py-2 rounded-full border items-center flex-row ${
+                isSelected
+                  ? 'bg-blue-600 border-blue-600'
+                  : 'bg-white border-gray-200'
               }`}
+              style={!isSelected ? { elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } } : undefined}
             >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text className="mr-1.5 text-base">{category.emoji}</Text>
+              <Text
+                className={`font-semibold text-sm ${
+                  isSelected ? 'text-white' : 'text-gray-700'
+                }`}
+              >
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
