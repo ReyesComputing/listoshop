@@ -1,12 +1,11 @@
 {
   "expo": {
-    "name": "ListoShop",
-    "slug": "listoshop",
+    "name": "app",
+    "slug": "app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "listoshop",
-    "owner": "jeffrey652",
+    "scheme": "app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,9 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.reyescomputing.listoshop",
-      "buildNumber": "1"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -25,9 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.reyescomputing.listoshop",
-      "versionCode": 1
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
@@ -39,12 +34,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "ddb47273-727b-4ade-94a0-c227b2b37d21"
-      },
-      "router": {}
     }
   }
 }

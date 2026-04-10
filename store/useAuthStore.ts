@@ -4,16 +4,19 @@ import { supabase } from '../lib/supabase';
 
 interface AuthState {
   profile: Profile | null;
+  loading: boolean;
   setProfile: (profile: Profile | null) => void;
+  setLoading: (loading: boolean) => void;
   signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   profile: null,
-  setProfile: (profile) => set({ profile }),
+  loading: true,
+  setProfile: (profile) => set({ profile, loading: false }),
+  setLoading: (loading) => set({ loading }),
   signOut: async () => {
-    // Fix Hallazgo 3: Complete logout: call Supabase signOut
     await supabase.auth.signOut();
-    set({ profile: null });
+    set({ profile: null, loading: false });
   },
 }));

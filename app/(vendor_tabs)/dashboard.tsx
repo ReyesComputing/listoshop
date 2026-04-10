@@ -41,17 +41,11 @@ export default function VendorDashboard() {
 
       if (error) throw error;
 
-      interface VendorOrderItem {
-        unit_price: number;
-        quantity: number;
-        orders: { id: string; status: string };
-        products: { store_id: string; stores: { vendor_id: string } };
-      }
-      const items = (data ?? []) as unknown as VendorOrderItem[];
+      const castData = data as any[];
 
-      const totalSales = items.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
-      const uniqueOrders = new Set(items.map(item => item.orders.id));
-      const pendingOrdersCount = new Set(items.filter(item => item.orders.status === 'pending_payment').map(item => item.orders.id)).size;
+      const totalSales = castData.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+      const uniqueOrders = new Set(castData.map(item => item.orders.id));
+      const pendingOrdersCount = new Set(castData.filter(item => item.orders.status === 'pending').map(item => item.orders.id)).size;
 
       setStats({
         totalSales,
@@ -75,8 +69,8 @@ export default function VendorDashboard() {
     fetchStats();
   };
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
+    signOut();
     router.replace('/(auth)/login');
   };
 

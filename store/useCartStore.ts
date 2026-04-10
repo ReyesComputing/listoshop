@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Product } from '../types/database';
 
 export interface CartItem extends Product {
@@ -16,9 +14,7 @@ interface CartState {
   total: number;
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
+export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   total: 0,
   addItem: (product) => {
@@ -50,10 +46,4 @@ export const useCartStore = create<CartState>()(
     set({ items: newItems, total });
   },
   clearCart: () => set({ items: [], total: 0 }),
-    }),
-    {
-      name: 'listoshop-cart',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+}));

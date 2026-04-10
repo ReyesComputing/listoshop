@@ -8,45 +8,49 @@ import { Profile } from '../types/database';
 import '../global.css';
 
 export default function RootLayout() {
-  const { profile, setProfile } = useAuthStore();
+  const { profile, setProfile, loading, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
-  // Hydrate Supabase session on init
+  // 1. Hydrate session and listen to auth changes
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileData) {
-          setProfile(profileData as Profile);
-        }
-      }
-      setIsReady(true);
-    };
-
-    checkUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // Solo re-hidratar en refresh, no en SIGNED_IN (register.tsx maneja eso)
-        const current = useAuthStore.getState().profile;
-        if (!current) {
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
           const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-          if (profileData) setProfile(profileData as Profile);
+
+          if (profileData) {
+            setProfile(profileData as Profile);
+          } else {
+            setLoading(false);
+          }
+        } else {
+          setLoading(false);
         }
+      } catch (e) {
+        console.error('Error initializing auth:', e);
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        if (profileData) setProfile(profileData as Profile);
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
       }
     });
 
@@ -55,12 +59,15 @@ export default function RootLayout() {
     };
   }, []);
 
+  // 2. Navigation logic
   useEffect(() => {
-    if (!isReady) return;
+    if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!profile && !inAuthGroup) {
+      // Use replace but wrap in a small timeout or check if router is ready
+      // In Expo Router v3+, it's usually better to use Redirect components or wait for segments
       router.replace('/(auth)/login');
     } else if (profile && inAuthGroup) {
       if (profile.role === 'buyer') {
@@ -69,11 +76,11 @@ export default function RootLayout() {
         router.replace('/(vendor_tabs)/dashboard');
       }
     }
-  }, [profile, segments, isReady]);
+  }, [profile, segments, loading]);
 
-  if (!isReady) {
+  if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
         <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
@@ -85,8 +92,6 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(buyer_tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(vendor_tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="auto" />
