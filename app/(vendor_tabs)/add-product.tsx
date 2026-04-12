@@ -8,7 +8,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { Camera, ChevronDown } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
-const CATEGORIES = ['Tenis', 'Perfumes', 'Ropa', 'Accesorios', 'Electrónica'];
+const CATEGORIES = ['Herramientas', 'Construcción', 'Electricidad', 'Plomería', 'Pinturas', 'Tornillería'];
+const UNITS = ['unidad', 'kg', 'bulto', 'm3', 'par', 'metro'];
 
 export default function AddProductScreen() {
   const { profile } = useAuthStore();
@@ -25,6 +26,7 @@ export default function AddProductScreen() {
     price: '',
     stock: '',
     category: CATEGORIES[0],
+    unit_of_measure: UNITS[0],
   });
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function AddProductScreen() {
         price: data.price.toString(),
         stock: data.stock.toString(),
         category: data.category,
+        unit_of_measure: data.unit_of_measure || UNITS[0],
       });
       setImage(data.image_url);
     } catch (error) {
@@ -146,6 +149,7 @@ export default function AddProductScreen() {
         price: numericPrice,
         stock: numericStock,
         category: form.category,
+          unit_of_measure: form.unit_of_measure,
         image_url,
         store_id: storeId,
       };
@@ -229,6 +233,25 @@ export default function AddProductScreen() {
               value={form.stock}
               onChangeText={(t) => setForm({ ...form, stock: t })}
             />
+          </View>
+        </View>
+
+        <View>
+          <Text className="text-gray-600 mb-2 font-semibold">Unidad de Medida *</Text>
+          <View className="flex-row flex-wrap">
+            {UNITS.map((unit) => (
+              <TouchableOpacity
+                key={unit}
+                onPress={() => setForm({ ...form, unit_of_measure: unit })}
+                className={`mr-2 mb-2 px-3 py-2 rounded-lg border ${
+                  form.unit_of_measure === unit ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
+                }`}
+              >
+                <Text className={`font-semibold ${form.unit_of_measure === unit ? 'text-white' : 'text-gray-600'}`}>
+                  {unit}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 

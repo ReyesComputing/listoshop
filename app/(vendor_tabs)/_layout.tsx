@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, PlusCircle, Package, User } from 'lucide-react-native';
+import { LayoutDashboard, PlusCircle, Package, Users } from 'lucide-react-native';
 
 export default function VendorLayout() {
   return (
@@ -39,6 +39,14 @@ export default function VendorLayout() {
           title: 'Nuevo',
           tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
           headerTitle: 'Agregar Producto',
+        }}
+      />
+      <Tabs.Screen
+        name="customers"
+        options={{
+          title: 'Clientes',
+          tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
+          headerTitle: 'Gestión de Clientes',
         }}
       />
     </Tabs>

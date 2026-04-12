@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Search, ShoppingCart, User } from 'lucide-react-native';
+import { Home, Search, ShoppingCart, FileText, User } from 'lucide-react-native';
 
 export default function BuyerLayout() {
   return (
@@ -37,6 +37,14 @@ export default function BuyerLayout() {
         options={{
           title: 'Carrito',
           tabBarIcon: ({ color, size }) => <ShoppingCart size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="quotes"
+        options={{
+          title: 'Cotizaciones',
+          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+          headerTitle: 'Mis Cotizaciones',
         }}
       />
       <Tabs.Screen
