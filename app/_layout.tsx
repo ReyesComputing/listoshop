@@ -13,47 +13,69 @@ export default function RootLayout() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
-  // Hydrate Supabase session on init
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+  const hydrateProfileFromSession = async (session: any) => {
+    if (!session?.user) return;
 
-        if (profileData) {
-          setProfile(profileData as Profile);
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn('No se pudo cargar el perfil del usuario:', profileError.message);
+        return;
+      }
+
+      if (profileData) {
+        setProfile(profileData as Profile);
+      }
+    } catch (error) {
+      console.warn('Error al hidratar perfil:', error);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        await hydrateProfileFromSession(session);
+      } catch (error) {
+        console.warn('Error al iniciar la sesión guardada:', error);
+      } finally {
+        if (isMounted) {
+          setIsReady(true);
         }
       }
-      setIsReady(true);
     };
 
     checkUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
       if (event === 'SIGNED_OUT') {
         setProfile(null);
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // Solo re-hidratar en refresh, no en SIGNED_IN (register.tsx maneja eso)
+        return;
+      }
+
+      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
         const current = useAuthStore.getState().profile;
-        if (!current) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          if (profileData) setProfile(profileData as Profile);
+        if (!current || event === 'SIGNED_IN') {
+          await hydrateProfileFromSession(session);
         }
       }
     });
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [setProfile]);
 
   useEffect(() => {
     if (!isReady) return;

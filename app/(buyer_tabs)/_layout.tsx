@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Search, ShoppingCart, User } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCartStore } from '../../store/useCartStore';
 
 export default function BuyerLayout() {
   const itemCount = useCartStore((s) => s.items.length);
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -22,8 +24,8 @@ export default function BuyerLayout() {
           shadowOpacity: 0.08,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: -4 },
-          height: 64,
-          paddingBottom: 10,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 6,
           backgroundColor: '#fff',
         },
