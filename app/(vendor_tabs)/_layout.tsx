@@ -1,8 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, PlusCircle, Package, User } from 'lucide-react-native';
+import { LayoutDashboard, PlusCircle, Package } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function VendorLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -12,8 +15,9 @@ export default function VendorLayout() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: '#f1f5f9',
-          height: 60,
-          paddingBottom: 10,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          paddingTop: 8,
         },
       }}
     >
